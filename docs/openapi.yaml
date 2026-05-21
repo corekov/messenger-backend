@@ -1,0 +1,503 @@
+openapi: 3.0.3
+info:
+  title: Secure Messenger Backend API
+  description: |
+    Production-ready API documentation for a secure messenger backend written in Go.
+    Supports end-to-end encryption readiness, WebSocket real-time updates, and JWT-based authentication.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: API V1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        last_seen:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Chat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [direct, group]
+        name:
+          type: string
+          nullable: true
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        last_message:
+          $ref: '#/components/schemas/Message'
+        unread_count:
+          type: integer
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        ciphertext:
+          type: string
+        iv:
+          type: string
+        message_type:
+          type: string
+          enum: [text, file, image, voice]
+        file_id:
+          type: string
+          nullable: true
+        reply_to:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [sent, delivered, read]
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_deleted:
+          type: boolean
+    PublicKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        identity_key:
+          type: string
+        signed_prekey:
+          type: string
+        prekey_sig:
+          type: string
+        one_time_keys:
+          type: array
+          items:
+            type: string
+        uploaded_at:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+        - device_name
+        - device_fp
+        - platform
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 8
+        device_name:
+          type: string
+        device_fp:
+          type: string
+        platform:
+          type: string
+          enum: [ios, android]
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+        - device_fp
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        device_fp:
+          type: string
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    CreateChatRequest:
+      type: object
+      required:
+        - type
+        - member_ids
+      properties:
+        type:
+          type: string
+          enum: [direct, group]
+        name:
+          type: string
+        member_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    UploadKeysRequest:
+      type: object
+      required:
+        - identity_key
+        - signed_prekey
+        - prekey_sig
+      properties:
+        identity_key:
+          type: string
+        signed_prekey:
+          type: string
+        prekey_sig:
+          type: string
+        one_time_keys:
+          type: array
+          items:
+            type: string
+    WSEvent:
+      type: object
+      description: WebSocket wrapper event for all messages.
+      properties:
+        type:
+          type: string
+          enum:
+            - message
+            - message_ack
+            - message_read
+            - typing
+            - online
+            - offline
+            - call_offer
+            - call_answer
+            - call_ice
+            - call_end
+        payload:
+          type: object
+          description: Context-dependent JSON payload based on the event type.
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/login:
+    post:
+      summary: Login user
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/refresh:
+    post:
+      summary: Refresh JWT token
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /auth/me:
+    get:
+      summary: Get current user profile
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /chats:
+    get:
+      summary: List user chats
+      tags:
+        - Chats
+      responses:
+        '200':
+          description: List of chats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+    post:
+      summary: Create a new chat
+      tags:
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '201':
+          description: Chat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+  /chats/{id}/messages:
+    get:
+      summary: Get chat messages
+      tags:
+        - Chats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+  /chats/{id}/read:
+    post:
+      summary: Mark chat messages as read
+      tags:
+        - Chats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chat marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /users/search:
+    get:
+      summary: Search users by username
+      tags:
+        - Users
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of matched users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /users/{id}/keys:
+    get:
+      summary: Get user public keys for E2EE
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User public key payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicKey'
+  /users/keys:
+    post:
+      summary: Upload public keys for E2EE
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadKeysRequest'
+      responses:
+        '200':
+          description: Keys successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /ws:
+    get:
+      summary: WebSocket Connection Endpoint
+      tags:
+        - WebSocket
+      description: |
+        Establish a WebSocket connection for real-time messaging, typing indicators, and WebRTC signaling.
+        Requires authentication via a Bearer token in the `Authorization` header OR via a `token` query parameter.
+      parameters:
+        - name: token
+          in: query
+          description: JWT Access Token (if not provided in Authorization header)
+          required: false
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols (WebSocket connected)
+  /health:
+    get:
+      summary: Health check endpoint
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: 1.0.0
