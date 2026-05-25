@@ -73,11 +73,17 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip st
 
 	device, err := s.deviceRepo.FindByFP(ctx, req.DeviceFP)
 	if err != nil {
-		return nil, errors.New("device not registered, please register first")
-	}
-
-	if device.UserID != user.ID {
-		return nil, errors.New("device fingerprint mismatch")
+		// Device not found, register it automatically for this user
+		device, err = s.deviceRepo.Upsert(ctx, user.ID, "Mobile Device", req.DeviceFP, "android")
+		if err != nil {
+			return nil, fmt.Errorf("failed to register device on login: %w", err)
+		}
+	} else if device.UserID != user.ID {
+		// This device fingerprint belongs to another user
+		device, err = s.deviceRepo.Upsert(ctx, user.ID, "Mobile Device", req.DeviceFP, "android")
+		if err != nil {
+			return nil, fmt.Errorf("failed to re-register device on login: %w", err)
+		}
 	}
 
 	return s.issueTokens(ctx, user, device.ID, ip)
