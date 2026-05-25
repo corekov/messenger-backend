@@ -358,6 +358,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat'
+  /chats/{id}:
+    delete:
+      summary: Delete or leave a chat
+      tags:
+        - Chats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chat successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '403':
+          description: Unauthorized or not a member
+        '404':
+          description: Chat not found
   /chats/{id}/messages:
     get:
       summary: Get chat messages

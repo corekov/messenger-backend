@@ -49,3 +49,12 @@ func (s *ChatService) GetMessages(ctx context.Context, chatID, userID, beforeID 
 func (s *ChatService) MarkRead(ctx context.Context, chatID, userID string) error {
 	return s.messageRepo.UpdateStatusByChatAndUser(ctx, chatID, userID, "read")
 }
+
+func (s *ChatService) DeleteChat(ctx context.Context, chatID, userID string) error {
+	// First check if the user is a member of the chat
+	ok, err := s.chatRepo.IsMember(ctx, chatID, userID)
+	if err != nil || !ok {
+		return errors.New("access denied")
+	}
+	return s.chatRepo.RemoveMember(ctx, chatID, userID)
+}

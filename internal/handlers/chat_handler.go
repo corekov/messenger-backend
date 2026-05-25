@@ -82,3 +82,16 @@ func (h *ChatHandler) MarkRead(c *gin.Context) {
 	h.chatService.MarkRead(c.Request.Context(), chatID, userID)
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
+
+// DELETE /api/v1/chats/:id
+func (h *ChatHandler) Delete(c *gin.Context) {
+	userID := c.GetString(middleware.UserIDKey)
+	chatID := c.Param("id")
+	
+	err := h.chatService.DeleteChat(c.Request.Context(), chatID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}

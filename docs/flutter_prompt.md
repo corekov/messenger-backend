@@ -14,7 +14,7 @@ A production-ready Go backend is already developed and running. You must build t
 ### 2. REST API (Users & Messaging)
 - **Base URL:** `http://localhost:8080/api/v1` (configurable via env).
 - **Users:** Endpoints exist to fetch the current user's profile and search for other users by username.
-- **Chats & Messages:** Endpoints exist to fetch a list of active 1-on-1 chats, fetch message history for a specific chat with pagination, and mark messages as read.
+- **Chats & Messages:** Endpoints exist to fetch a list of active 1-on-1 and group chats, fetch message history for a specific chat with pagination, mark messages as read, and delete or leave a chat.
 
 ### 3. Real-Time Communication (WebSocket)
 - **Connection:** The app must establish a persistent WebSocket connection to the backend after logging in.

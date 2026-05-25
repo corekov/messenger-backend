@@ -159,3 +159,8 @@ func (r *ChatRepo) IsMember(ctx context.Context, chatID, userID string) (bool, e
 	).Scan(&exists)
 	return exists, err
 }
+
+func (r *ChatRepo) RemoveMember(ctx context.Context, chatID, userID string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM chat_members WHERE chat_id=$1 AND user_id=$2`, chatID, userID)
+	return err
+}

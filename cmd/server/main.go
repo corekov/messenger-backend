@@ -86,6 +86,7 @@ func main() {
 		protected.POST("/chats",             chatHandler.Create)
 		protected.GET("/chats/:id/messages", chatHandler.GetMessages)
 		protected.POST("/chats/:id/read",    chatHandler.MarkRead)
+		protected.DELETE("/chats/:id",       chatHandler.Delete)
 
 		protected.GET("/users/search",  userHandler.Search)
 		protected.GET("/users/:id/keys", userHandler.GetPublicKeys)
