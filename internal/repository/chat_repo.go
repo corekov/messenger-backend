@@ -84,6 +84,54 @@ func (r *ChatRepo) ListByUser(ctx context.Context, userID string) ([]models.Chat
 		}
 		chats = append(chats, c)
 	}
+	rows.Close() // Explicitly close rows to free connection for next queries
+
+	for i := range chats {
+		chat := &chats[i]
+
+		// 1. Fetch Members and IdentityKeys
+		mRows, err := r.db.Query(ctx,
+			`SELECT u.id, u.username, u.avatar_url, 
+			        (SELECT identity_key FROM public_keys WHERE user_id = u.id ORDER BY uploaded_at DESC LIMIT 1) as identity_key
+			 FROM chat_members cm
+			 JOIN users u ON cm.user_id = u.id
+			 WHERE cm.chat_id = $1`, chat.ID)
+		if err == nil {
+			var members []models.User
+			for mRows.Next() {
+				var u models.User
+				var idKey *string
+				if err := mRows.Scan(&u.ID, &u.Username, &u.AvatarURL, &idKey); err == nil {
+					u.IdentityKey = idKey
+					members = append(members, u)
+				}
+			}
+			mRows.Close()
+			chat.Members = members
+		}
+
+		// 2. Fetch Last Message
+		var lastMsg models.Message
+		err = r.db.QueryRow(ctx,
+			`SELECT id, chat_id, sender_id, ciphertext, iv, message_type, status, created_at 
+			 FROM messages 
+			 WHERE chat_id = $1 
+			 ORDER BY created_at DESC LIMIT 1`, chat.ID).
+			Scan(&lastMsg.ID, &lastMsg.ChatID, &lastMsg.SenderID, &lastMsg.Ciphertext, &lastMsg.IV, &lastMsg.MessageType, &lastMsg.Status, &lastMsg.CreatedAt)
+		if err == nil {
+			chat.LastMessage = &lastMsg
+		}
+		
+		// 3. Fetch Unread Count
+		var unread int
+		err = r.db.QueryRow(ctx,
+			`SELECT COUNT(*) FROM messages 
+			 WHERE chat_id = $1 AND sender_id != $2 AND status != 'read'`, chat.ID, userID).Scan(&unread)
+		if err == nil {
+			chat.UnreadCount = unread
+		}
+	}
+
 	return chats, nil
 }
 

@@ -15,6 +15,7 @@ type User struct {
 	LastSeen     *time.Time `json:"last_seen,omitempty"`
 	IsActive     bool       `json:"is_active"`
 	CreatedAt    time.Time  `json:"created_at"`
+	IdentityKey  *string    `json:"identity_key,omitempty"` // populated via joins
 }
 
 // ─── Device ────────────────────────────────────────────────────────────────────
