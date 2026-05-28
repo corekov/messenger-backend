@@ -231,7 +231,10 @@ components:
             - call_end
         payload:
           type: object
-          description: Context-dependent JSON payload based on the event type.
+          description: |
+            Context-dependent JSON payload based on the event type.
+            For 'online' and 'offline' events, the payload contains:
+            `{"user_id": "uuid", "status": "online|offline"}`
 security:
   - bearerAuth: []
 paths:

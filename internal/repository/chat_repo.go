@@ -164,3 +164,25 @@ func (r *ChatRepo) RemoveMember(ctx context.Context, chatID, userID string) erro
 	_, err := r.db.Exec(ctx, `DELETE FROM chat_members WHERE chat_id=$1 AND user_id=$2`, chatID, userID)
 	return err
 }
+
+func (r *ChatRepo) GetMutualContactIDs(ctx context.Context, userID string) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT user_id 
+		FROM chat_members 
+		WHERE chat_id IN (
+			SELECT chat_id FROM chat_members WHERE user_id = $1
+		) AND user_id != $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}

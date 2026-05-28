@@ -168,7 +168,33 @@ func (h *WSHandler) broadcastPresence(userID string, online bool) {
 	if online {
 		eventType = models.WSTypeOnline
 	}
-	log.Printf("[presence] user=%s online=%v type=%s", userID, online, eventType)
+	
+	ctx := context.Background()
+	mutualIDs, err := h.chatRepo.GetMutualContactIDs(ctx, userID)
+	if err != nil {
+		log.Printf("[presence] error fetching mutual contacts for user=%s: %v", userID, err)
+		return
+	}
+	
+	if len(mutualIDs) > 0 {
+		payload := map[string]interface{}{
+			"user_id": userID,
+			"status":  eventType,
+		}
+		
+		// If offline, we could theoretically send last_seen here, 
+		// but since we update it in the database right after, the client can fetch it or just use "offline".
+		
+		payloadBytes, _ := json.Marshal(payload)
+		eventBytes, _ := json.Marshal(models.WSEvent{
+			Type:    eventType,
+			Payload: payloadBytes,
+		})
+		
+		h.hub.SendToUsers(mutualIDs, eventBytes)
+	}
+
+	log.Printf("[presence] user=%s online=%v type=%s (broadcasted to %d contacts)", userID, online, eventType, len(mutualIDs))
 }
 
 func mapPayload(payload json.RawMessage, dst interface{}) error {
