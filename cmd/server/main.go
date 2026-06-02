@@ -36,10 +36,12 @@ func main() {
 	chatRepo    := repository.NewChatRepo(db)
 	messageRepo := repository.NewMessageRepo(db)
 	keysRepo    := repository.NewKeysRepo(db)
+	fileRepo    := repository.NewFileRepo(db)
 
 	authService    := services.NewAuthService(userRepo, deviceRepo, sessionRepo, jwtMgr, cfg.JWTRefreshTTL)
 	chatService    := services.NewChatService(chatRepo, messageRepo)
 	messageService := services.NewMessageService(messageRepo, chatRepo)
+	fileService    := services.NewFileService(fileRepo, "./uploads")
 
 	hub := ws.NewHub()
 	go hub.Run()
@@ -47,6 +49,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	chatHandler := handlers.NewChatHandler(chatService)
 	userHandler := handlers.NewUserHandler(userRepo, keysRepo)
+	fileHandler := handlers.NewFileHandler(fileService)
 	wsHandler   := ws.NewWSHandler(hub, messageService, chatRepo, userRepo, jwtMgr)
 
 	if cfg.Env == "production" {
@@ -91,6 +94,9 @@ func main() {
 		protected.GET("/users/search",  userHandler.Search)
 		protected.GET("/users/:id/keys", userHandler.GetPublicKeys)
 		protected.POST("/users/keys",    userHandler.UploadKeys)
+
+		protected.POST("/files/upload",      fileHandler.UploadFile)
+		protected.GET("/files/:id/download", fileHandler.DownloadFile)
 	}
 
 	r.GET("/health", func(c *gin.Context) {

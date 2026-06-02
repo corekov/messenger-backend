@@ -127,6 +127,28 @@ components:
         uploaded_at:
           type: string
           format: date-time
+    File:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        uploader_id:
+          type: string
+          format: uuid
+        file_name:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+        encrypted_key:
+          type: string
+        url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
     RegisterRequest:
       type: object
       required:
@@ -493,6 +515,54 @@ paths:
                   status:
                     type: string
                     example: ok
+  /files/upload:
+    post:
+      summary: Upload an encrypted file
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                encrypted_key:
+                  type: string
+      responses:
+        '200':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '413':
+          description: File too large
+  /files/{id}/download:
+    get:
+      summary: Download an encrypted file
+      tags:
+        - Files
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
   /ws:
     get:
       summary: WebSocket Connection Endpoint
