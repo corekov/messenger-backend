@@ -352,6 +352,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /auth/me/bio:
+    put:
+      summary: Update user bio
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Bio updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /auth/me/avatar:
+    post:
+      summary: Upload user avatar
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Avatar uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  avatar_url:
+                    type: string
   /chats:
     get:
       summary: List user chats

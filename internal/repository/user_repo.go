@@ -54,6 +54,18 @@ func (r *UserRepo) UpdateLastSeen(ctx context.Context, userID string) error {
 	return err
 }
 
+func (r *UserRepo) UpdateBio(ctx context.Context, userID string, bio string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE users SET bio = $1 WHERE id = $2`, bio, userID)
+	return err
+}
+
+func (r *UserRepo) UpdateAvatarURL(ctx context.Context, userID string, avatarURL string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE users SET avatar_url = $1 WHERE id = $2`, avatarURL, userID)
+	return err
+}
+
 func (r *UserRepo) Search(ctx context.Context, query string, limit int) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT id, username, avatar_url, bio, last_seen, is_active, created_at

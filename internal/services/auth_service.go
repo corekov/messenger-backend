@@ -122,6 +122,14 @@ func (s *AuthService) GetMe(ctx context.Context, userID string) (*models.User, e
 	return s.userRepo.FindByID(ctx, userID)
 }
 
+func (s *AuthService) UpdateBio(ctx context.Context, userID, bio string) error {
+	return s.userRepo.UpdateBio(ctx, userID, bio)
+}
+
+func (s *AuthService) UpdateAvatarURL(ctx context.Context, userID, avatarURL string) error {
+	return s.userRepo.UpdateAvatarURL(ctx, userID, avatarURL)
+}
+
 func (s *AuthService) issueTokens(ctx context.Context, user *models.User, deviceID, ip string) (*models.AuthResponse, error) {
     access, err := s.jwtMgr.GenerateAccess(user.ID, deviceID)
     if err != nil {

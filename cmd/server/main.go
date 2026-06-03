@@ -46,7 +46,7 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, fileService)
 	chatHandler := handlers.NewChatHandler(chatService)
 	userHandler := handlers.NewUserHandler(userRepo, keysRepo)
 	fileHandler := handlers.NewFileHandler(fileService)
@@ -84,6 +84,8 @@ func main() {
 	protected.Use(middleware.Auth(jwtMgr))
 	{
 		protected.GET("/auth/me", authHandler.Me)
+		protected.PUT("/auth/me/bio", authHandler.UpdateBio)
+		protected.POST("/auth/me/avatar", authHandler.UploadAvatar)
 
 		protected.GET("/chats",              chatHandler.List)
 		protected.POST("/chats",             chatHandler.Create)
