@@ -91,7 +91,7 @@ func (r *ChatRepo) ListByUser(ctx context.Context, userID string) ([]models.Chat
 
 		// 1. Fetch Members and IdentityKeys
 		mRows, err := r.db.Query(ctx,
-			`SELECT u.id, u.username, u.avatar_url, 
+			`SELECT u.id, u.username, u.avatar_url, u.bio, 
 			        (SELECT identity_key FROM public_keys WHERE user_id = u.id ORDER BY uploaded_at DESC LIMIT 1) as identity_key
 			 FROM chat_members cm
 			 JOIN users u ON cm.user_id = u.id
@@ -101,7 +101,7 @@ func (r *ChatRepo) ListByUser(ctx context.Context, userID string) ([]models.Chat
 			for mRows.Next() {
 				var u models.User
 				var idKey *string
-				if err := mRows.Scan(&u.ID, &u.Username, &u.AvatarURL, &idKey); err == nil {
+				if err := mRows.Scan(&u.ID, &u.Username, &u.AvatarURL, &u.Bio, &idKey); err == nil {
 					u.IdentityKey = idKey
 					members = append(members, u)
 				}
