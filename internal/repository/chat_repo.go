@@ -11,7 +11,7 @@ type ChatRepo struct{ db *pgxpool.Pool }
 
 func NewChatRepo(db *pgxpool.Pool) *ChatRepo { return &ChatRepo{db: db} }
 
-func (r *ChatRepo) Create(ctx context.Context, chatType, createdBy string, name *string, memberIDs []string) (*models.Chat, error) {
+func (r *ChatRepo) Create(ctx context.Context, chatType, createdBy string, name *string, memberIDs []string, isSecret bool, messageTTL *int) (*models.Chat, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -20,10 +20,10 @@ func (r *ChatRepo) Create(ctx context.Context, chatType, createdBy string, name 
 
 	var chat models.Chat
 	err = tx.QueryRow(ctx,
-		`INSERT INTO chats (type, name, created_by) VALUES ($1, $2, $3)
-		 RETURNING id, type, name, created_by, created_at`,
-		chatType, name, createdBy,
-	).Scan(&chat.ID, &chat.Type, &chat.Name, &chat.CreatedBy, &chat.CreatedAt)
+		`INSERT INTO chats (type, name, created_by, is_secret, message_ttl) VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, type, name, created_by, created_at, is_secret, message_ttl`,
+		chatType, name, createdBy, isSecret, messageTTL,
+	).Scan(&chat.ID, &chat.Type, &chat.Name, &chat.CreatedBy, &chat.CreatedAt, &chat.IsSecret, &chat.MessageTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -46,17 +46,31 @@ func (r *ChatRepo) Create(ctx context.Context, chatType, createdBy string, name 
 	return &chat, tx.Commit(ctx)
 }
 
-func (r *ChatRepo) FindDirectChat(ctx context.Context, userA, userB string) (*models.Chat, error) {
+func (r *ChatRepo) FindDirectChat(ctx context.Context, userA, userB string, isSecret bool) (*models.Chat, error) {
 	var chat models.Chat
 	err := r.db.QueryRow(ctx,
-		`SELECT c.id, c.type, c.name, c.created_by, c.created_at
+		`SELECT c.id, c.type, c.name, c.created_by, c.created_at, c.is_secret, c.message_ttl
 		 FROM chats c
 		 JOIN chat_members cm1 ON c.id = cm1.chat_id AND cm1.user_id = $1
 		 JOIN chat_members cm2 ON c.id = cm2.chat_id AND cm2.user_id = $2
-		 WHERE c.type = 'direct'
+		 WHERE c.type = 'direct' AND c.is_secret = $3
 		 LIMIT 1`,
-		userA, userB,
-	).Scan(&chat.ID, &chat.Type, &chat.Name, &chat.CreatedBy, &chat.CreatedAt)
+		userA, userB, isSecret,
+	).Scan(&chat.ID, &chat.Type, &chat.Name, &chat.CreatedBy, &chat.CreatedAt, &chat.IsSecret, &chat.MessageTTL)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (r *ChatRepo) FindByID(ctx context.Context, chatID string) (*models.Chat, error) {
+	var chat models.Chat
+	err := r.db.QueryRow(ctx,
+		`SELECT id, type, name, created_by, created_at, is_secret, message_ttl
+		 FROM chats
+		 WHERE id = $1`,
+		chatID,
+	).Scan(&chat.ID, &chat.Type, &chat.Name, &chat.CreatedBy, &chat.CreatedAt, &chat.IsSecret, &chat.MessageTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +79,7 @@ func (r *ChatRepo) FindDirectChat(ctx context.Context, userA, userB string) (*mo
 
 func (r *ChatRepo) ListByUser(ctx context.Context, userID string) ([]models.Chat, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.created_at
+		`SELECT DISTINCT c.id, c.type, c.name, c.created_by, c.created_at, c.is_secret, c.message_ttl
 		 FROM chats c
 		 JOIN chat_members cm ON c.id = cm.chat_id
 		 WHERE cm.user_id = $1
@@ -79,7 +93,7 @@ func (r *ChatRepo) ListByUser(ctx context.Context, userID string) ([]models.Chat
 	var chats []models.Chat
 	for rows.Next() {
 		var c models.Chat
-		if err := rows.Scan(&c.ID, &c.Type, &c.Name, &c.CreatedBy, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Type, &c.Name, &c.CreatedBy, &c.CreatedAt, &c.IsSecret, &c.MessageTTL); err != nil {
 			return nil, err
 		}
 		chats = append(chats, c)

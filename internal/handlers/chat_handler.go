@@ -46,7 +46,7 @@ func (h *ChatHandler) Create(c *gin.Context) {
 	var err error
 
 	if req.Type == "direct" && len(req.MemberIDs) == 1 {
-		chat, err = h.chatService.GetOrCreateDirect(c.Request.Context(), userID, req.MemberIDs[0])
+		chat, err = h.chatService.GetOrCreateDirect(c.Request.Context(), userID, req.MemberIDs[0], &req)
 	} else {
 		chat, err = h.chatService.CreateGroup(c.Request.Context(), userID, &req)
 	}

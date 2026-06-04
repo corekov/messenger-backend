@@ -9,8 +9,10 @@ import (
 	"messenger/internal/middleware"
 	"messenger/internal/repository"
 	"messenger/internal/services"
+	"messenger/internal/sweeper"
 	ws "messenger/internal/websocket"
 	jwtpkg "messenger/pkg/jwt"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -45,6 +47,9 @@ func main() {
 
 	hub := ws.NewHub()
 	go hub.Run()
+
+	sw := sweeper.NewSweeper(messageRepo, chatRepo, hub)
+	sw.Start(1 * time.Minute)
 
 	authHandler := handlers.NewAuthHandler(authService, fileService)
 	chatHandler := handlers.NewChatHandler(chatService)

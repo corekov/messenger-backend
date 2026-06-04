@@ -49,11 +49,13 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user  ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(refresh_token);
 
 CREATE TABLE IF NOT EXISTS chats (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    type       VARCHAR(10) NOT NULL CHECK (type IN ('direct','group')),
-    name       TEXT,
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type        VARCHAR(10) NOT NULL CHECK (type IN ('direct','group')),
+    name        TEXT,
+    is_secret   BOOLEAN DEFAULT false,
+    message_ttl INTEGER,
+    created_by  UUID REFERENCES users(id),
+    created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS chat_members (

@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
+
 	"messenger/internal/models"
 	"messenger/internal/repository"
 )
@@ -22,6 +24,11 @@ func (s *MessageService) Send(ctx context.Context, senderID string, req *models.
 		return nil, errors.New("not a member of this chat")
 	}
 
+	chat, err := s.chatRepo.FindByID(ctx, req.ChatID)
+	if err != nil {
+		return nil, errors.New("chat not found")
+	}
+
 	msgType := req.MessageType
 	if msgType == "" {
 		msgType = "text"
@@ -36,6 +43,11 @@ func (s *MessageService) Send(ctx context.Context, senderID string, req *models.
 		FileID:      req.FileID,
 		ReplyTo:     req.ReplyTo,
 		Status:      "sent",
+	}
+
+	if chat.IsSecret && chat.MessageTTL != nil {
+		importTime := time.Now().Add(time.Duration(*chat.MessageTTL) * time.Second)
+		msg.ExpiresAt = &importTime
 	}
 
 	return s.messageRepo.Create(ctx, msg)

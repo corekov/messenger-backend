@@ -58,8 +58,10 @@ type Chat struct {
 	ID        string    `json:"id"`
 	Type      string    `json:"type"` // direct | group
 	Name      *string   `json:"name,omitempty"`
-	CreatedBy string    `json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedBy  string    `json:"created_by"`
+	CreatedAt  time.Time `json:"created_at"`
+	IsSecret   bool      `json:"is_secret"`
+	MessageTTL *int      `json:"message_ttl,omitempty"`
 	// virtual fields (populated via JOIN)
 	LastMessage *Message  `json:"last_message,omitempty"`
 	UnreadCount int       `json:"unread_count"`
@@ -131,9 +133,11 @@ type SendMessageRequest struct {
 }
 
 type CreateChatRequest struct {
-	Type      string   `json:"type" binding:"required,oneof=direct group"`
-	Name      *string  `json:"name,omitempty"`
-	MemberIDs []string `json:"member_ids" binding:"required,min=1"`
+	Type       string   `json:"type" binding:"required,oneof=direct group"`
+	Name       *string  `json:"name,omitempty"`
+	MemberIDs  []string `json:"member_ids" binding:"required,min=1"`
+	IsSecret   bool     `json:"is_secret"`
+	MessageTTL *int     `json:"message_ttl,omitempty"`
 }
 
 type UploadKeysRequest struct {

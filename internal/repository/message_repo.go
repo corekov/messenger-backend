@@ -86,8 +86,21 @@ func (r *MessageRepo) SoftDelete(ctx context.Context, messageID, userID string) 
 	return err
 }
 
-func (r *MessageRepo) DeleteExpired(ctx context.Context) error {
-	_, err := r.db.Exec(ctx,
-		`UPDATE messages SET is_deleted=true WHERE expires_at IS NOT NULL AND expires_at<=NOW()`)
-	return err
+func (r *MessageRepo) DeleteExpired(ctx context.Context) ([]models.Message, error) {
+	rows, err := r.db.Query(ctx,
+		`UPDATE messages SET is_deleted=true 
+		 WHERE expires_at IS NOT NULL AND expires_at<=NOW() AND is_deleted=false 
+		 RETURNING id, chat_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var msgs []models.Message
+	for rows.Next() {
+		var m models.Message
+		if err := rows.Scan(&m.ID, &m.ChatID); err == nil {
+			msgs = append(msgs, m)
+		}
+	}
+	return msgs, rows.Err()
 }
