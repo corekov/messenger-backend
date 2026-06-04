@@ -622,8 +622,19 @@ paths:
       tags:
         - WebSocket
       description: |
-        Establish a WebSocket connection for real-time messaging, typing indicators, and WebRTC signaling.
+        Establish a WebSocket connection for real-time messaging, typing indicators, WebRTC signaling, and message deletion.
         Requires authentication via a Bearer token in the `Authorization` header OR via a `token` query parameter.
+        
+        **Message Deletion Payload Format:**
+        ```json
+        {
+          "type": "message_delete",
+          "payload": {
+            "message_id": "uuid",
+            "chat_id": "uuid"
+          }
+        }
+        ```
       parameters:
         - name: token
           in: query

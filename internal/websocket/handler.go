@@ -147,6 +147,23 @@ func (h *WSHandler) handleIncoming(userID string, raw []byte) {
 		eventBytes, _ := json.Marshal(models.WSEvent{Type: models.WSTypeMessageRead, Payload: payloadBytes})
 		h.hub.SendToUsers(memberIDs, eventBytes)
 
+	case models.WSTypeMessageDelete:
+		var p models.DeleteMessagePayload
+		if err := mapPayload(event.Payload, &p); err != nil {
+			log.Printf("invalid message_delete payload: %v", err)
+			return
+		}
+		if err := h.msgService.Delete(ctx, p.MessageID, userID); err != nil {
+			log.Printf("delete message error: %v", err)
+			return
+		}
+		memberIDs, err := h.chatRepo.GetMembers(ctx, p.ChatID)
+		if err == nil {
+			payloadBytes, _ := json.Marshal(p)
+			eventBytes, _ := json.Marshal(models.WSEvent{Type: models.WSTypeMessageDelete, Payload: payloadBytes})
+			h.hub.SendToUsers(memberIDs, eventBytes)
+		}
+
 	// WebRTC signaling
 	case models.WSTypeCallOffer, models.WSTypeCallAnswer,
 		models.WSTypeCallICE, models.WSTypeCallEnd:

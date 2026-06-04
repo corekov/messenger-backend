@@ -143,6 +143,11 @@ type UploadKeysRequest struct {
 	OneTimeKeys  []string `json:"one_time_keys"`
 }
 
+type DeleteMessagePayload struct {
+	MessageID string `json:"message_id"`
+	ChatID    string `json:"chat_id"`
+}
+
 // ─── WebSocket Events ─────────────────────────────────────────────────────────
 type WSEvent struct {
 	Type    string          `json:"type"`
@@ -153,6 +158,7 @@ const (
 	WSTypeMessage         = "message"
 	WSTypeMessageAck      = "message_ack"
 	WSTypeMessageRead     = "message_read"
+	WSTypeMessageDelete   = "message_delete"
 	WSTypeTyping          = "typing"
 	WSTypeOnline          = "online"
 	WSTypeOffline         = "offline"
