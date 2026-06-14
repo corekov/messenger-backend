@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const baseURL = "http://localhost:8080/api/v1"
+const baseURL = "https://renewed-passion-production-c85e.up.railway.app/api/v1"
 
 type RegisterRequest struct {
 	Username   string `json:"username"`
@@ -251,7 +251,23 @@ func TestE2EFlow(t *testing.T) {
 		assert.Equal(t, "ok", res["status"])
 	})
 
-	// 8. Logout
+	// 8. Secret Chat Creation
+	t.Run("CreateSecretChat", func(t *testing.T) {
+		chatReq := map[string]interface{}{
+			"type":        "direct",
+			"member_ids":  []string{userID_B},
+			"is_secret":   true,
+			"message_ttl": 5, // 5 seconds
+		}
+		resp, respBody := doRequest(t, http.MethodPost, "/chats", chatReq, authA.AccessToken)
+		assert.Equal(t, http.StatusCreated, resp.StatusCode, string(respBody))
+		var chatResp map[string]interface{}
+		json.Unmarshal(respBody, &chatResp)
+		assert.Equal(t, true, chatResp["is_secret"])
+		assert.Equal(t, float64(5), chatResp["message_ttl"])
+	})
+
+	// 9. Logout
 	t.Run("Logout", func(t *testing.T) {
 		logoutReq := map[string]string{"refresh_token": authA.RefreshToken}
 		resp, respBody := doRequest(t, http.MethodPost, "/auth/logout", logoutReq, "")
